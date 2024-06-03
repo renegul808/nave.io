@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Juego de Aterrizaje en Júpiter</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="juego" width="800" height="500"></canvas>
+  <script>
+    // Obtener el canvas y su contexto
+    var canvas = document.getElementById("juego");
+    var ctx = canvas.getContext("2d");
+
+    // Variables del juego
+    var juegoActivo = true;
+    var puntuacion = 0;
+    var disparos = [];
+
+    // Variables de la nave
+    var nave = {
+      x: 50,
+      y: canvas.height / 2,
+      width: 60,
+      height: 30,
+      velocidadY: 0,
+      gravedad: 0.2,
+      velocidadDisparo: 8
+    };
+
+    // Variables del obstáculo
+    var obstaculo = {
+      x: canvas.width,
+      y: 0,
+      radius: 20,
+      velocidadX: 5
+    };
+
+    // Imagen de la Tierra
+    var imgTierra = new Image();
+    imgTierra.src = "https://upload.wikimedia.org/wikipedia/commons/thumb/9/97/The_Earth_seen_from_Apollo_17.jpg/800px-The_Earth_seen_from_Apollo_17.jpg";
+
+    // Mover la nave con el mouse
+    canvas.addEventListener("mousemove", function(event) {
+      nave.y = event.clientY - nave.height / 2;
+    });
+
+    // Disparar cuando se presiona la barra espaciadora
+    document.addEventListener("keydown", function(event) {
+      if (event.code === "Space") {
+        disparar();
+      }
+    });
+
+    // Función para disparar
+    function disparar() {
+      disparos.push({
+        x: nave.x + nave.width,
+        y: nave.y + nave.height / 2
+      });
+    }
+
+    // Dibujar la nave
+    function dibujarNave() {
+      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.moveTo(nave.x, nave.y);
+      ctx.lineTo(nave.x + nave.width, nave.y + nave.height / 2);
+      ctx.lineTo(nave.x, nave.y + nave.height);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Mover la nave
+    function moverNave() {
+      nave.y += nave.velocidadY;
+      if (nave.y < 0) {
+        nave.y = 0;
+      }
+      if (nave.y + nave.height > canvas.height) {
+        nave.y = canvas.height - nave.height;
+      }
+    }
+
+    // Dibujar el obstáculo
+    function dibujarObstaculo() {
+      ctx.fillStyle = "#ff0000";
+      ctx.beginPath();
+      ctx.arc(obstaculo.x, obstaculo.y, obstaculo.radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Mover el obstáculo
+    function moverObstaculo() {
+      obstaculo.x -= obstaculo.velocidadX;
+      if (obstaculo.x + obstaculo.radius < 0) {
+        obstaculo.x = canvas.width + obstaculo.radius;
+        obstaculo.y = Math.random() * (canvas.height - obstaculo.radius * 2) + obstaculo.radius;
+        puntuacion++;
+      }
+    }
+
+    // Detectar colisiones
+    function detectarColisiones() {
+      // Colisiones entre nave y obstáculo
+      var distanciaX = nave.x - obstaculo.x;
+      var distanciaY = nave.y - obstaculo.y;
+      var distancia = Math.sqrt(distanciaX * distanciaX + distanciaY * distanciaY);
+      if (distancia < nave.height / 2 + obstaculo.radius) {
+        juegoActivo = false;
+        alert("¡Colisión! Tu puntuación: " + puntuacion);
+        window.location.reload();
+      }
+
+      // Colisiones entre disparos y obstáculo
+      for (var i = 0; i < disparos.length; i++) {
+        var distanciaDisparoX = disparos[i].x - obstaculo.x;
+        var distanciaDisparoY = disparos[i].y - obstaculo.y;
+        var distanciaDisparo = Math.sqrt(distanciaDisparoX * distanciaDisparoX + distanciaDisparoY * distanciaDisparoY);
+        if (distanciaDisparo < obstaculo.radius) {
+          disparos.splice(i, 1);
+          obstaculo.x = canvas.width + obstaculo.radius;
+          obstaculo.y = Math.random() * (canvas.height - obstaculo.radius * 2) + obstaculo.radius;
+          puntuacion++;
+          break;
+        }
+      }
+    }
+
+    // Dibujar disparos
+    function dibujarDisparos() {
+      ctx.fillStyle = "#00ff00";
+      for (var i = 0; i < disparos.length; i++) {
+        ctx.beginPath();
+        ctx.arc(disparos[i].x, disparos[i].y, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    // Mover disparos
+    function moverDisparos() {
+      for (var i = 0; i < disparos.length; i++) {
+        disparos[i].x += nave.velocidadDisparo;
+        if (disparos[i].x > canvas.width) {
+          disparos.splice(i, 1);
+        }
+      }
+    }
+
+    // Mostrar puntuación
+    function mostrarPuntuacion() {
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "20px Arial";
+      ctx.fillText("Puntuación: " + puntuacion, 10, 30);
+    }
+
+    // Dibujar fondo de Tierra
+    function dibujarFondo() {
+      ctx.drawImage(imgTierra, 0, 0, canvas.width, canvas.height);
+    }
+
+    // Limpiar el canvas
+    function limpiarCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Función principal del juego
+    function juego() {
+      if (juegoActivo) {
+        limpiarCanvas();
+        dibujarFondo();
+        moverObstaculo();
+        moverNave();
+        moverDisparos();
+        detectarColisiones();
+        dibujarNave();
+        dibujarObstaculo();
+        dibujarDisparos();
+        mostrarPuntuacion();
+        requestAnimationFrame(juego);
+      }
+    }
+
+    // Iniciar el juego
+    juego();
+  </script>
+</body>
+</html>
+s
